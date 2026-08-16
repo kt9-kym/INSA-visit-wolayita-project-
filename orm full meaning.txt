@@ -1,0 +1,187 @@
+What Is an ORM and what does it do?
+When I was learning to code, I spent a lot of time learning SQL and using it to work with data in the projects I was working on.
+
+But then I started using frameworks like Ruby on Rails and was introduced to these things called ‘ORMS’.
+
+Watch the video tutorial here.
+
+An ORM is probably one of the best tools for saving you time and effort when building a full-stack app as they can help speed up your development time making it easier to work with data in your apps and they’re also a handy thing to add to your professional skills on your resume or CV.
+
+But what exactly is an ORM?
+
+Well, put simply an ORM provides a way of interacting with a database like retrieving data from it or putting data into it without having to write any database specific code and by that I mean SQL.
+
+This creates a sort of bridge, an intemediatry step between where your data is stored and how it is used in your application code. There is a mapping between the ORM code you use in your app and the tables in your database.
+
+## Definition
+
+So to explain this further, ORM, in web development terms, stands for Object, Relational, Mapper (or mappings) and it converts the tables in your database into objects that you can use in your code.
+
+For example, if you wanted to get all of the ‘posts’ that are stored in your database for a blog application, you might normally write an SQL query that looks a bit like this
+
+SELECT * FROM POSTS;
+This SQL string would need to be passed from your app code to the database using some sort of connector package like a PostGres connector or MySQL connector.
+
+Here’s how that might look when connecting to a PostGres database in JavaScript to retrieve those blog posts.
+
+import { Client } from 'pg'
+const client = new Client()
+await client.connect()
+ 
+try {
+   const posts = await client.query('SELECT * FROM POSTS;');
+} catch (err) {
+   console.error(err);
+} finally {
+   await client.end()
+}
+In this code, we’re connecting to the database and then sending the SQL query using the client’s query function.
+
+This is quite a simple example but you should straight away see that there’s lots of opportunites to introduce errors when using a raw SQL statement like this.
+
+With an ORM, to do the same thing and get the ‘posts’ in our database you would use functions provided by the ORM to access the data.
+
+Here’s a bit of an overview of what that might look like with an ORM package instead of using a database connector.
+
+This isn’t a real package, it’s just example code.
+
+import { someORM } from 'some-orm-package';
+import { postsModel } from './models/post';
+
+await someORM.connect();
+
+try {
+   const posts = await postsModel.find()
+} catch (err) {
+   console.error(err);
+} finally {
+   await someORM.end()
+}
+So, very similar to the PostGres example except we don’t need to have any knowledge of how the tables are structured in the database and we don’t need to write any SQL to retreive the data - the ORM does all of this for us.
+
+This ultimately helps to simplify the interaction with the database as the ORM does all the heavy lifting of creating the right query to work with the data.
+
+But how does the ORM know where to put the data and where to retrieve it from?
+
+This is all done by creating a data model which defines how the data is structured in the objects we use in our app. The ORM then hides the underlying structure of the tables in the database from us by providing the mapping between object and table.
+
+In other words, they will handle the creation of the tables in the database for us and modify this automatically if we need to make any changes.
+
+Let’s have a look at how ORMs use data models.
+
+## ORM Models
+
+The idea of creating a data model isn’t something specific to ORMs themselves but they’re used here to define how the data should look within your application and the ORM works out what tables need to be created and how to map between the database and the objects in you code.
+
+Here’s an example of what a model might look like in a JavaScript ORM.
+
+export class BlogPostModel {
+    postTitle = DataTypes.STRING,
+    published = DataTypes.DATE,
+    postText = DataTypes.TEXT,
+    ...
+}
+Here, we’re just defining a blueprint, a structure for our model which we can then use to create new posts which we can work with in our application code and then store in our database.
+
+Referring back to our previous example of retrieving our blog posts, we might use our data model to get all of our stored posts.
+
+In a simple express app this might look a bit like this.
+
+import { BlogPostModel } from './BlogPostModel.js';
+import { someORM } from 'some-orm-package';
+
+app.get('/blogPosts', async (req, res) => {
+    const posts = await someORM.find(BlogPostModel);
+
+    return res.json(posts);
+});
+Here, we’re using the BlogPost data model to tell the ORM which type of data we want to retrive. It then works out where that data is stored in the database and passes us back the results as objects that match the BlogPostModel.
+
+Another example of using data models with an ORM is storing data.
+
+We might have a route in our express app which is called from the front end web app to create and save a new blog post.
+
+With our ORM and blogpost data model, that might look something like this.
+
+import { BlogPostModel } from './BlogPostModel.js';
+import { someORM } from 'some-orm-package';
+
+app.post('/blogPosts', async (req, res) => {
+    const { body } = req;
+
+    const newBlogPost =  new BlogPostModel(body);
+
+    const result = await someORM.save(newBlogPost);
+
+    return res.json(result);
+});
+So here we’re taking the request body provided from the front-end, creating a new instance of our BlogPostModel and then using our ORM to save the resource into the database.
+
+Hopefully you can see again how this is much simpler than writing an SQL statement to take all of the bits of information provided from the front-end app and ensure everything gets stored in the right places in the database.
+
+This is especially true when you have multiple tables and relationships between those tables.
+
+Relationships in ORM#
+Of course the R in ORM stands for ‘Relational’ or ‘Relationships’ and your chosen ORM will handle splitting up an object provided by you application code into the related tables and also JOINing data back together when you’re retrieving it.
+
+To carry on our blog example, it’s likely that you’ll have users or authors who are writing the blog posts.
+
+Rather than adding these directly to a model as a string or something (which would create problems if the user wanted to update their details later on) you can provide a reference to a separate model.
+
+In our made-up JavaScript ORM that might look something like this.
+
+import { someORM } from 'some-orm-package';
+
+export class AuthorModel {
+    authorName = DataTypes.STRING;
+    userName = DataTypes.DATE;
+    blogPostsWritten = someORM.many(BlogPostModel);
+    ...
+}
+
+export class BlogPostModel {
+    postTitle = DataTypes.STRING;
+    published = DataTypes.DATE;
+    postText = DataTypes.TEXT;
+    author = someORM.oneOf(AuthorModel);
+    ...
+}
+ORMs usually have better ways of dealing with relationships but this example hopefully illustrates how you would link models together and when saving or retrieving data, your ORM will do all the hard work of making sure your data is saved in or retreived from the correct tables.
+
+Which ORM to use?#
+So I’ve given you some made up JavaScript code but ORMs are available in a wide variety of platforms and languages.
+
+Some popular ORMs for Java include Hibernate, OpenJPA, EclipseLink and Oracle Toplink.
+
+For PHP there are packages like Propel and Doctrine.
+
+Python has SQLAlchemy and the Django web framework has an ORM built in to it too.
+
+C# has NHibernate and Entity Framework whilst JavaScript or Typescript has about a billion including Prisma, Drizzle, Sequelize and TypeOrm.
+
+## Pros and Cons
+
+So what are some of the pros and cons of using an ORM?
+
+These are some of the pros.
+
+- It abstracts which database system you are using from the app code. As a developer, you don't really need to worry about which system is in place as the ORM handles everything for you. Another advantage of this is you can easily swap the underlying database system in use for another one and not have to change all of the logic in your code that works with the data. 
+
+- It creates DRY code as the data models are all kept in one place making it easier to update, maintain and reuse code.
+
+- Of course, lots of stuff is done automatically for - such as connecting to a database, the authorisation and the interaction with the data.
+
+- As a developer you don't have to write (or even know how to write!) SQL code. This can mean that there are less errors when working with the data due to badly formatted SQL statements.
+
+- A final pro for using an ORM is that you have improved security and integrity of your data. Although an ORM won't completely eliminate these issues, it goes a long way to help by mitigating things like SQL injection and making use of transactions.
+But it’s not all roses.
+
+Here are some of the cons of using an ORM.
+
+- First off, you have to actually learn how to use the ORM including it's syntax, how it approaches using data models and relationships. Depending on your level of experience, this can seem like a headache.
+
+- The ORM needs to be installed into your project and ensuring you have the correct dependencies an maintaing these packages can add extra complexity and overhead to your project.
+
+- Although an ORM simplifies the interaction with your data it can add a bit of an overhead in terms of processing time and you will most likely get better performance when using raw SQL. If your app requires high volume processing or needs to have optimal response times from your database then an ORM might not be the best choice.
+
+- Finally, and this has happened to me before. When a weird problem comes 
